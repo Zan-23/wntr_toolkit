@@ -1,3 +1,13 @@
+# Intellij
+.idea
+
+# WNTR simulation stuff
+temp*
+
+# JSON files
+*.json
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
