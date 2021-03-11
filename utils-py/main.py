@@ -2,7 +2,12 @@ import json
 import time
 import pandas as pd
 from EPANETUtils import EPANETUtils
+import os
 
+def clear_files():
+    os.remove("temp.bin")
+    os.remove("temp.rpt")
+    os.remove("temp.inp")
 
 
 def leakage_scenario(name):
@@ -27,9 +32,12 @@ def leakage_scenario(name):
     later = time.time()
     print("Total duration: {}s".format(later - now))
 
+def draw():
+    epanet_util_instance_new = EPANETUtils("./../data/RaduNegru11Jan2021WithDemands_2.2.inp", "PDD")
+    epanet_util_instance_new.interactive_visualization(node_size=12, title='Scheme of the network', figsize=[1500, 900])
 
 if __name__ == '__main__':
-    leakage_scenario("PyCharm")
+    draw()
 
 
 """

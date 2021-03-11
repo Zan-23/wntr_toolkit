@@ -403,8 +403,8 @@ class EPANETUtils:
         :param water_network_model:
         :return:
         """
-        if leak_to_simulate <= 0:
-            raise Exception("Leak to simulate must be bigger than 0, please readjust the parameter: " + leak_to_simulate)
+        if leak_to_simulate < 0:
+            raise Exception("Leak to simulate must be bigger or equal to 0, please readjust the parameter: " + leak_to_simulate)
 
         if water_network_model is None:
             # if no water model is provided the default unmodified instance will be returned
@@ -423,7 +423,7 @@ class EPANETUtils:
 
         return pressure_df
 
-    def run_leakage_scenario(self, leaks_arr=None, generate_diff_dict=False):
+    def run_leakage_scenario(self, leaks_arr=None, generate_diff_dict=False, retrieve_specific_nodes_arr=None):
         """
         TODO
         1. Run the simulation in normal without leaks
@@ -458,6 +458,12 @@ class EPANETUtils:
 
         if generate_diff_dict:
             diff_dict = self.generate_difference_dataframe(node_leak_nodes_dict, leak_names)
+
+        if retrieve_specific_nodes_arr is not None and len(retrieve_specific_nodes_arr) > 0:
+            for node_key in node_leak_nodes_dict.keys():
+                for leak_name in leak_names:
+                    temp_df = pd.DataFrame.from_dict(node_leak_nodes_dict[node_key][leak_name])
+                    node_leak_nodes_dict[node_key][leak_name] = temp_df[list(retrieve_specific_nodes_arr)].to_dict()
 
         return node_leak_nodes_dict, diff_dict
 
