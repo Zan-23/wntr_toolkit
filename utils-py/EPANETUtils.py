@@ -419,7 +419,7 @@ class EPANETUtils:
         water_network_model.get_node(node).add_demand(base=1, pattern_name=self.LEAKED_PATTERN)
 
         simulation_results = self.run_simulation(water_network_model=water_network_model)
-        pressure_df = simulation_results.node["pressure"].rename_axis(f"Node_ {node}, {leak_to_simulate:.4f} LPS", axis=1)
+        pressure_df = simulation_results.node["pressure"].rename_axis(f"Node_ {node}, {leak_to_simulate:.4f} m3/s", axis=1)
 
         return pressure_df
 
@@ -444,7 +444,7 @@ class EPANETUtils:
 
         if leaks_arr is None:
             leaks_arr = [0.003, 0.006, 0.012]
-        leak_names = [str(leak) + "LPS - Leak" for leak in leaks_arr]
+        leak_names = [str(leak) + "m3/s - Leak" for leak in leaks_arr]
 
         water_network_model = self.get_original_water_network_model()
         # TODO add pattern here ?
@@ -457,7 +457,7 @@ class EPANETUtils:
                 node_leak_nodes_dict[node][leak_name] = self.add_leakage_on_node_and_run_simulation(node, leak).to_dict()
 
         if generate_diff_dict:
-            diff_dict = self.generate_difference_dataframe(node_leak_nodes_dict, leak_names)
+            diff_dict = self.generate_difference_dict(node_leak_nodes_dict, leak_names)
 
         if retrieve_specific_nodes_arr is not None and len(retrieve_specific_nodes_arr) > 0:
             for node_key in node_leak_nodes_dict.keys():
@@ -465,9 +465,15 @@ class EPANETUtils:
                     temp_df = pd.DataFrame.from_dict(node_leak_nodes_dict[node_key][leak_name])
                     node_leak_nodes_dict[node_key][leak_name] = temp_df[list(retrieve_specific_nodes_arr)].to_dict()
 
+        if generate_diff_dict:
+            for node_key in diff_dict.keys():
+                for leak_name in leak_names:
+                    temp_df = pd.DataFrame.from_dict(diff_dict[node_key][leak_name])
+                    diff_dict[node_key][leak_name] = temp_df[list(retrieve_specific_nodes_arr)].to_dict()
+
         return node_leak_nodes_dict, diff_dict
 
-    def generate_difference_dataframe(self, leak_data_dict, leak_names):
+    def generate_difference_dict(self, leak_data_dict, leak_names):
         """
         TODO
         :param leak_data_dict:

@@ -48,7 +48,7 @@ def execution_main(name):
     now = time.time()
     epanet_util_instance = EPANETUtils("./../data/RaduNegru11Jan2021WithDemands_2.2.inp", "PDD")
 
-    # epanet_util_instance.generate_network_json()
+    # epanet_util_instance.generate_network_jsongenerate_network_json()
     # epanet_util_instance.generate_pressures_at_nodes(file_name="temp_pressures", to_bars=False)
     # epanet_util_instance.generate_flowrate_on_pipes(file_name="temp_flow")
     # epanet_util_instance.interactive_visualization(node_size=12, title='Scheme of the network', figsize=[1500, 900])
