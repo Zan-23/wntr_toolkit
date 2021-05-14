@@ -36,8 +36,12 @@ def csv_file_to_pandas_df(file_name):
     return original_df.groupby(hour).mean()
 
 
-def generate_leakage_correlation_matrix(dict_of_leaks, leak_attribute_name, selected_nodes, normalize=False):
+def generate_leakage_correlation_matrix(dict_of_leaks, leak_attribute_name, selected_nodes=None, normalize=False):
     # only works with diff dict because of the 24h reference
+    if selected_nodes is None:
+        # TODO set to all columns
+        pass
+
     correlation_df = pd.DataFrame(columns=selected_nodes)
 
     for node_with_leak in dict_of_leaks:

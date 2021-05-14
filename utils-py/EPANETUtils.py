@@ -60,12 +60,15 @@ class EPANETUtils:
         """
         return copy.deepcopy(self.water_network_model)
 
-    def run_simulation(self, water_network_model):
+    def run_simulation(self, water_network_model=None):
         """
         Net.options.hydraulic.demand_model=Method   #Using PDD as demand method
         Net.options.time.duration = Time*24*3600    #Time of simulation
         :return:
         """
+        if water_network_model is None:
+            water_network_model = self.get_original_water_network_model()
+
         sim = wntr.sim.EpanetSimulator(water_network_model)
         simulation_results = sim.run_sim(version=2.2)
 
@@ -82,6 +85,18 @@ class EPANETUtils:
         if not str.endswith(new_file_name, ".json"):
             new_file_name = new_file_name + ".json"
         return new_file_name
+
+    def get_pipe_length(self, pipe=None, water_network_model=None, ):
+        if water_network_model is None:
+            water_network_model = self.get_original_water_network_model()
+
+        all_objects_with_lengths = water_network_model.query_link_attribute('length')
+        if pipe is not None:
+            # Returns an int which means meters
+            return all_objects_with_lengths.loc[pipe]
+
+        # Returns a pandas series with all objects and their lengths
+        return all_objects_with_lengths
 
     def generate_network_json(self, water_network_model=None, file_name="water_network.json"):
         """
@@ -107,7 +122,6 @@ class EPANETUtils:
         :param file_name:   Name of the file we want to store the data in.
         :return:    The method doesn't return nothing.
         """
-        # TODO check if it is possible to get pipe position - pipes aren't usually placed in a straight line from a to b
         if water_network_model is None:
             water_network_model = self.get_original_water_network_model()
 
@@ -137,7 +151,7 @@ class EPANETUtils:
                     if node in dict_of_links[pipe] and sub_node in dict_of_links[pipe]:
                         node_dict[node]["connections"][sub_node] = pipe
                         # Break because there is usually just one connection between two nodes
-                        # TODO make this work for multiple connections between two nodes
+                        # TODO check if this works if two nodes are connected with more than one pipe
                         break
 
         # Writing to the file
@@ -230,168 +244,6 @@ class EPANETUtils:
 
         return df_simulations_results
 
-    def interactive_visualization(self, water_network_model=None, node_attribute_name='Value', title=None, node_size=8, node_labels=True,
-                                link_width=1, figsize=[700, 450], round_ndigits=2, add_to_node_popup=None,
-                                filename='plotly_network.html', auto_open=True):
-        """
-        TODO
-        :param water_network_model:
-        :param node_attribute_name:
-        :param title:
-        :param node_size:
-        :param node_labels:
-        :param link_width:
-        :param figsize:
-        :param round_ndigits:
-        :param add_to_node_popup:
-        :param filename:
-        :param auto_open:
-        :return:
-        """
-        # TODO import your svg icons, integrate it with pressure/flow - aka take the already made code
-        # TODO junction are the one with no base demand usage, nodes aka circles are the ones with usage
-        # TODO more viz options, pressure wiz, flowrate viz, pressure + flowarate ?
-        if water_network_model is None:
-            # if no water model is provided the default unmodified instance will be returned
-            water_network_model = self.get_original_water_network_model()
-
-        network_graph = water_network_model.get_graph()
-        # Create edge trace - connections
-
-        edge_trace = plotly.graph_objs.Scatter(
-            name="Pipe",
-            x=[],
-            y=[],
-            text=[],
-            hoverinfo='text',
-            mode='lines',
-            # TODO change line shape ? line_shape='hv',
-            line=dict(
-                color='#888',
-                width=link_width
-            )
-        )
-
-        # Node trace for normal Junctions
-        node_junction = plotly.graph_objs.Scatter(
-            name="Junction",
-            x=[],
-            y=[],
-            text=[],
-            hoverinfo='text',
-            mode='markers',
-            marker=dict(
-                color="#FCA103",
-                size=node_size,
-                opacity=1,
-                line=dict(width=1),
-                symbol='bowtie'))
-        # Node trace for terminal junctions (only one connection)
-        node_terminal_junction = plotly.graph_objs.Scatter(
-            name="Terminal Junction",
-            x=[],
-            y=[],
-            text=[],
-            hoverinfo='text',
-            mode='markers',
-            marker=dict(
-                color="#FC4E03",
-                size=5,
-                opacity=1,
-                line=dict(width=1),
-                symbol='circle'
-            ))
-        # Node trace for tanks
-        node_tank = plotly.graph_objs.Scatter(
-            name="Tank",
-            x=[],
-            y=[],
-            text=[],
-            hoverinfo='text',
-            mode='markers',
-            marker=dict(
-                color="#33B0FF",
-                size=node_size + 10,
-                opacity=1,
-                line=dict(width=1),
-                symbol='square'
-            ))
-
-        # Node trace for sensors
-        node_sensor = plotly.graph_objs.Scatter(
-            name="Sensor",
-            x=[],
-            y=[],
-            text=[],
-            hoverinfo='text',
-            mode='markers',
-            marker=dict(
-                color="#41BE51",
-                size=node_size,
-                opacity=1,
-                line=dict(width=1),
-                symbol='arrow-right'
-            )
-        )
-
-        for edge in network_graph.edges():
-            x0, y0 = network_graph.nodes[edge[0]]['pos']
-            x1, y1 = network_graph.nodes[edge[1]]['pos']
-            edge_trace['x'] += tuple([x0, x1, None])
-            edge_trace['y'] += tuple([y0, y1, None])
-
-        terminal_nodes = [node[0] for node in network_graph.degree() if node[1] == 1]
-        for node in network_graph.nodes():
-            curr_node = None
-            x, y = network_graph.nodes[node]['pos']
-
-            # G.nodes[node] has a property "type", this can be Junction, Reservoir
-            if network_graph.nodes[node]["type"] == "Reservoir":
-                curr_node = node_tank
-            elif node in terminal_nodes:
-                curr_node = node_terminal_junction
-            elif "Senzor" in node:
-                curr_node = node_sensor
-            else:
-                curr_node = node_junction
-
-            curr_node['x'] += tuple([x])
-            curr_node['y'] += tuple([y])
-            # Add node labels
-            if node_labels:
-                node_info = water_network_model.get_node(node).node_type + ': ' + str(node) + '<br>' + \
-                            node_attribute_name + ': ' + "No data"
-                if add_to_node_popup is not None:
-                    if node in add_to_node_popup.index:
-                        for key, val in add_to_node_popup.loc[node].iteritems():
-                            node_info = node_info + '<br>' + \
-                                        key + ': ' + '{:.{prec}f}'.format(val, prec=round_ndigits)
-
-                curr_node['text'] += tuple([node_info])
-
-        # Create figure
-        data = [edge_trace, node_terminal_junction, node_junction, node_tank, node_sensor]
-        layout = plotly.graph_objs.Layout(
-            title=title,
-            titlefont=dict(size=16),
-            showlegend=True,
-            width=figsize[0],
-            height=figsize[1],
-            hovermode='closest',
-            margin=dict(b=20, l=5, r=5, t=40),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-
-        fig = plotly.graph_objs.Figure(data=data, layout=layout)
-        if filename:
-            plotly.offline.plot(fig, filename=filename, auto_open=auto_open)
-        else:
-            plotly.offline.plot(fig, auto_open=auto_open)
-
-    def interactive_visualization_24_hour_simulation(self):
-        # TODO implement simulation in which values change in a 24 hour cycle
-        pass
-
     def add_leakage_on_node_and_run_simulation(self, node, leak_to_simulate, water_network_model=None):
         """
         Method takes in the node on which we want to add a leak and the amount of leakage in m^3/s.
@@ -448,7 +300,11 @@ class EPANETUtils:
 
         water_network_model = self.get_original_water_network_model()
         # TODO add pattern here ?
+
+        # getting all the nodes names
         nodes_list = water_network_model.junction_name_list
+        if retrieve_specific_nodes_arr is None or len(retrieve_specific_nodes_arr) < 1:
+            retrieve_specific_nodes_arr = nodes_list
 
         node_leak_nodes_dict = dict()
         for node in nodes_list:
@@ -509,14 +365,6 @@ class EPANETUtils:
             leak_data = pd.DataFrame.from_dict(leak_data)   # Transforming data into a dataframe
 
         return leak_data.subtract(original_df)
-
-    def generate_pipe_distances_to_nodes(self):
-        # TODO for each node calculate how much distance there is to the next one but the distance is a sum of pipe lengths
-        # not euclidean distance
-        pass
-
-    def visualization_for_pressure_with_leaks(self):
-        pass
 
     def get_node_base_demand(self, node_name, water_network_model=None):
         """

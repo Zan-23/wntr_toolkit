@@ -1,7 +1,9 @@
 import json
 import time
 import pandas as pd
+import wntr
 from EPANETUtils import EPANETUtils
+import NetworkVisualisation
 import os
 
 def clear_files():
@@ -13,7 +15,7 @@ def clear_files():
 def leakage_scenario(name):
     print("Starting simulation.....")
     now = time.time()
-    epanet_util_instance_new = EPANETUtils("./../data/RaduNegru11Jan2021WithDemands_2.2.inp", "PDD")
+    epanet_util_instance_new = EPANETUtils("./../data/RaduNegru12April2021_2.2.inp", "PDD")
 
     print("Generating leaks.....")
     dict_leaks, dict_diff = epanet_util_instance_new.run_leakage_scenario(leaks_arr=[0.006, 0.012], generate_diff_dict=True)
@@ -32,9 +34,24 @@ def leakage_scenario(name):
     later = time.time()
     print("Total duration: {}s".format(later - now))
 
+
 def draw():
-    epanet_util_instance_new = EPANETUtils("./../data/RaduNegru11Jan2021WithDemands_2.2.inp", "PDD")
-    epanet_util_instance_new.interactive_visualization(node_size=12, title='Scheme of the network', figsize=[1500, 900])
+    epanet_util_instance_new = EPANETUtils("./../data/RaduNegru12April2021_version_2.2.inp", "PDD")
+    # epanet_util_instance_new.interactive_visualization(node_size=12, title='Scheme of the network', figsize=[1500, 900])
+    results = epanet_util_instance_new.run_simulation()
+    pressure = results.node['pressure']
+    pressure_at_10hr = pressure.loc[36000, :]
+    # wntr.graphics.plot_interactive_network(
+    #     epanet_util_instance_new.get_original_water_network_model(),
+    #     node_attribute=pressure_at_10hr,
+    #     figsize=[1800, 1000])
+    print(pressure_at_10hr)
+    NetworkVisualisation.plot_interactive_network(
+        epanet_util_instance_new.get_original_water_network_model(),
+        node_attribute=pressure_at_10hr,
+        figsize=[1800, 1000]
+    )
+
 
 if __name__ == '__main__':
     draw()
@@ -46,7 +63,7 @@ TODO make this a test all OK function
 def execution_main(name):
     print("Starting simulation.....")
     now = time.time()
-    epanet_util_instance = EPANETUtils("./../data/RaduNegru11Jan2021WithDemands_2.2.inp", "PDD")
+    epanet_util_instance = EPANETUtils("./../data/RaduNegruMarch2021_fixed_2.2.inp", "PDD")
 
     # epanet_util_instance.generate_network_jsongenerate_network_json()
     # epanet_util_instance.generate_pressures_at_nodes(file_name="temp_pressures", to_bars=False)
